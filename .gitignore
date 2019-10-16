@@ -2,5 +2,6 @@ Thumbs.db
 bin
 obj
 .vs
+packages
 *.user
 *.suo
