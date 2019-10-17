@@ -6,6 +6,8 @@ using System.Data;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net;
+using System.Net.Mail;
 using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -39,13 +41,6 @@ namespace XwSMTPTest
         {
             return " v" + System.Diagnostics.FileVersionInfo.GetVersionInfo(
                 System.Reflection.Assembly.GetAssembly(type).Location).FileVersion.ToString();
-        }
-
-
-        //*************************************************************************************************************
-        private void buttonSend_Click(object sender, EventArgs e)
-        {
-            SaveTests();
         }
 
         //*************************************************************************************************************
@@ -94,23 +89,23 @@ namespace XwSMTPTest
         }
 
         //*************************************************************************************************************
-        private void SaveTests()
+        private Test SaveTests()
         {
-            Test tmp = (Test)comboSavedAs.Items[0]; //Last Used...
-            tmp.Library = comboLibrary.SelectedItem.ToString();
-            tmp.From = textFrom.Text;
-            tmp.ReplyTo = textReplyTo.Text;
-            tmp.To = textTo.Text;
-            tmp.Sender = textSender.Text;
-            tmp.CC = textCC.Text;
-            tmp.BCC = textBCC.Text;
-            tmp.Subject = textSubject.Text;
-            tmp.Body = textBody.Text;
-            tmp.SMTPHost = textSMTPHost.Text;
-            tmp.SMTPPort = textSMTPPort.Text;
-            tmp.SMTPUser = textSMTPUser.Text;
-            tmp.SMTPPassword = textSMTPPassword.Text;
-            tmp.SMTPSecurity = comboSMTPSecurity.SelectedItem.ToString();
+            Test lastUsed = (Test)comboSavedAs.Items[0];
+            lastUsed.Library = comboLibrary.SelectedItem.ToString();
+            lastUsed.From = textFrom.Text.Trim();
+            lastUsed.ReplyTo = textReplyTo.Text.Trim();
+            lastUsed.To = textTo.Text.Trim();
+            lastUsed.Sender = textSender.Text.Trim();
+            lastUsed.CC = textCC.Text.Trim();
+            lastUsed.BCC = textBCC.Text.Trim();
+            lastUsed.Subject = textSubject.Text.Trim();
+            lastUsed.Body = textBody.Text.Trim();
+            lastUsed.SMTPHost = textSMTPHost.Text.Trim();
+            lastUsed.SMTPPort = textSMTPPort.Text.Trim();
+            lastUsed.SMTPUser = textSMTPUser.Text.Trim();
+            lastUsed.SMTPPassword = textSMTPPassword.Text.Trim();
+            lastUsed.SMTPSecurity = comboSMTPSecurity.SelectedItem.ToString();
 
             List<Test> tests = new List<Test>();
             foreach (Test test in comboSavedAs.Items)
@@ -119,6 +114,8 @@ namespace XwSMTPTest
             }
             string json = JsonConvert.SerializeObject(tests, Formatting.Indented);
             File.WriteAllText("savedtests.json", json);
+
+            return lastUsed;
         }
 
         //*************************************************************************************************************
@@ -140,5 +137,68 @@ namespace XwSMTPTest
             textSMTPPassword.Text = test.SMTPPassword;
             comboSMTPSecurity.SelectedItem = test.SMTPSecurity;
         }
+
+        //*************************************************************************************************************
+        private void Log(string message)
+        {
+            textLog.AppendText(message);
+            textLog.AppendText("\r\n");
+        }
+
+        //*************************************************************************************************************
+        private void buttonSend_Click(object sender, EventArgs e)
+        {
+            textLog.Text = "";
+            Test test = SaveTests();
+            switch (test.Library)
+            {
+                case ".Net":
+                    TestWithDotNet(test);
+                    break;
+                case "MailKit":
+                    TestWithMailKit(test);
+                    break;
+                default:
+                    Log("Unkonwn Library");
+                    break;
+            }
+        }
+
+        //*************************************************************************************************************
+        private void TestWithDotNet(Test test) 
+        {
+            try
+            {
+                SmtpClient oSMTP = new SmtpClient();
+                oSMTP.Host = test.SMTPHost;
+                oSMTP.Port = int.Parse(test.SMTPPort);
+
+                MailMessage oMail = new MailMessage(test.From, test.To, test.Subject, test.Body);
+                oMail.IsBodyHtml = false;
+                oMail.BodyEncoding = System.Text.Encoding.UTF8;
+                oMail.SubjectEncoding = System.Text.Encoding.UTF8;
+
+                if (test.BCC != "")
+                    oMail.Bcc.Add(test.BCC);
+
+                if (!string.IsNullOrEmpty(test.SMTPUser))
+                    oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
+
+                oSMTP.Send(oMail);
+                Log("Sent");
+            }
+            catch (Exception ex)
+            {
+                Log(ex.Message);
+                Log(ex.StackTrace);
+            }
+        }
+
+        //*************************************************************************************************************
+        private void TestWithMailKit(Test test)
+        {
+
+        }
+
     }
 }
