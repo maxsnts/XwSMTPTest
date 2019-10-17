@@ -24,6 +24,13 @@ namespace XwSMTPTest
         private void Main_Load(object sender, EventArgs e)
         {
             Text += PrintVersion(typeof(Main));
+            comboLibrary.Items.Add(".Net");
+            comboLibrary.Items.Add("MailKit");
+            comboLibrary.SelectedIndex = 0;
+            comboSMTPSecurity.Items.Add("None");
+            comboSMTPSecurity.Items.Add("SSL");
+            comboSMTPSecurity.Items.Add("STARTTLS");
+            comboSMTPSecurity.SelectedIndex = 0;
             LoadTests();
         }
 
@@ -90,7 +97,7 @@ namespace XwSMTPTest
         private void SaveTests()
         {
             Test tmp = (Test)comboSavedAs.Items[0]; //Last Used...
-            // Library;
+            tmp.Library = comboLibrary.SelectedItem.ToString();
             tmp.From = textFrom.Text;
             tmp.ReplyTo = textReplyTo.Text;
             tmp.To = textTo.Text;
@@ -103,7 +110,7 @@ namespace XwSMTPTest
             tmp.SMTPPort = textSMTPPort.Text;
             tmp.SMTPUser = textSMTPUser.Text;
             tmp.SMTPPassword = textSMTPPassword.Text;
-            // security
+            tmp.SMTPSecurity = comboSMTPSecurity.SelectedItem.ToString();
 
             List<Test> tests = new List<Test>();
             foreach (Test test in comboSavedAs.Items)
@@ -118,7 +125,7 @@ namespace XwSMTPTest
         private void comboSavedAs_SelectedIndexChanged(object sender, EventArgs e)
         {
             Test test = (Test)comboSavedAs.SelectedItem;
-            // Library;
+            comboLibrary.SelectedItem = test.Library;
             textFrom.Text = test.From;
             textReplyTo.Text = test.ReplyTo;
             textTo.Text = test.To;
@@ -131,7 +138,7 @@ namespace XwSMTPTest
             textSMTPPort.Text = test.SMTPPort;
             textSMTPUser.Text = test.SMTPUser;
             textSMTPPassword.Text = test.SMTPPassword;
-            //SMTPSecurity;
+            comboSMTPSecurity.SelectedItem = test.SMTPSecurity;
         }
     }
 }
