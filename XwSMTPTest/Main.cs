@@ -178,10 +178,27 @@ namespace XwSMTPTest
                 oMail.BodyEncoding = System.Text.Encoding.UTF8;
                 oMail.SubjectEncoding = System.Text.Encoding.UTF8;
 
+                if (test.ReplyTo != "")
+                    oMail.ReplyToList.Add(test.ReplyTo);
+
+                if (test.Sender != "")
+                    oMail.Sender = new MailAddress(test.Sender);
+
+                //oMail.BodyEncoding
+                //oMail.SubjectEncoding
+                //oMail.DeliveryNotificationOptions
+                //oMail.Headers
+                //oMail.HeadersEncoding
+                //oMail.Priority
+                //oMail.IsBodyHtml
+
+                if (test.CC != "")
+                    oMail.CC.Add(test.CC);
+
                 if (test.BCC != "")
                     oMail.Bcc.Add(test.BCC);
 
-                if (!string.IsNullOrEmpty(test.SMTPUser))
+                if (test.SMTPUser != "")
                     oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
 
                 oSMTP.Send(oMail);
