@@ -12,13 +12,24 @@ namespace XwSMTPTest
 {
     public partial class Main : Form
     {
+        private List<Test> tests = new List<Test>();
+
+        //*************************************************************************************************************
         public Main()
         {
             InitializeComponent();
         }
 
+        //*************************************************************************************************************
         private void Main_Load(object sender, EventArgs e)
         {
+            LoadSavedTests();
+        }
+
+        //*************************************************************************************************************
+        private void LoadSavedTests()
+        { 
+            
 
         }
     }
