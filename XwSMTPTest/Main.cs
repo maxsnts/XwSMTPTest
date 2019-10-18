@@ -30,7 +30,6 @@ namespace XwSMTPTest
             comboLibrary.Items.Add("MailKit");
             comboLibrary.SelectedIndex = 0;
             comboSMTPSecurity.Items.Add("None");
-            comboSMTPSecurity.Items.Add("SSL");
             comboSMTPSecurity.Items.Add("STARTTLS");
             comboSMTPSecurity.SelectedIndex = 0;
             LoadTests();
@@ -141,6 +140,7 @@ namespace XwSMTPTest
         //*************************************************************************************************************
         private void Log(string message)
         {
+            textLog.AppendText("-----------------------------------------------------------------");
             textLog.AppendText(message);
             textLog.AppendText("\r\n");
         }
@@ -201,11 +201,15 @@ namespace XwSMTPTest
                 if (test.SMTPUser != "")
                     oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
 
+                if (test.SMTPSecurity == "STARTTLS")
+                    oSMTP.EnableSsl = true;
+
                 oSMTP.Send(oMail);
-                Log("Sent");
+                Log("========== SENT ==========");
             }
             catch (Exception ex)
             {
+                textLog.AppendText("=================================================================");
                 Log(ex.Message);
                 Log(ex.StackTrace);
             }
