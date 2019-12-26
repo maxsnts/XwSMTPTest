@@ -169,6 +169,8 @@ namespace XwSMTPTest
         {
             try
             {
+                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+
                 SmtpClient oSMTP = new SmtpClient();
                 oSMTP.Host = test.SMTPHost;
                 oSMTP.Port = int.Parse(test.SMTPPort);
@@ -199,7 +201,11 @@ namespace XwSMTPTest
                     oMail.Bcc.Add(test.BCC);
 
                 if (test.SMTPUser != "")
+                {
+                    //oSMTP.UseDefaultCredentials = true;
+                    //oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword, "quintelaepenalva.pt");
                     oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
+                }
 
                 if (test.SMTPSecurity == "STARTTLS")
                     oSMTP.EnableSsl = true;
