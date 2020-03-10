@@ -1,15 +1,8 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
 using System.IO;
-using System.Linq;
 using System.Net;
-using System.Net.Mail;
-using System.Text;
-using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace XwSMTPTest
@@ -140,7 +133,7 @@ namespace XwSMTPTest
         //*************************************************************************************************************
         private void Log(string message)
         {
-            textLog.AppendText("-----------------------------------------------------------------");
+            textLog.AppendText("-----------------------------------------------------------------\r\n");
             textLog.AppendText(message);
             textLog.AppendText("\r\n");
         }
@@ -150,6 +143,8 @@ namespace XwSMTPTest
         {
             textLog.Text = "";
             Test test = SaveTests();
+
+            Log("Sending...");
             switch (test.Library)
             {
                 case ".Net":
@@ -171,11 +166,11 @@ namespace XwSMTPTest
             {
                 ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
 
-                SmtpClient oSMTP = new SmtpClient();
+                System.Net.Mail.SmtpClient oSMTP = new System.Net.Mail.SmtpClient();
                 oSMTP.Host = test.SMTPHost;
                 oSMTP.Port = int.Parse(test.SMTPPort);
 
-                MailMessage oMail = new MailMessage(test.From, test.To, test.Subject, test.Body);
+                System.Net.Mail.MailMessage oMail = new System.Net.Mail.MailMessage(test.From, test.To, test.Subject, test.Body);
                 oMail.IsBodyHtml = false;
                 oMail.BodyEncoding = System.Text.Encoding.UTF8;
                 oMail.SubjectEncoding = System.Text.Encoding.UTF8;
@@ -184,7 +179,7 @@ namespace XwSMTPTest
                     oMail.ReplyToList.Add(test.ReplyTo);
 
                 if (test.Sender != "")
-                    oMail.Sender = new MailAddress(test.Sender);
+                    oMail.Sender = new System.Net.Mail.MailAddress(test.Sender);
 
                 //oMail.BodyEncoding
                 //oMail.SubjectEncoding
@@ -207,15 +202,17 @@ namespace XwSMTPTest
                     oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
                 }
 
+                oSMTP.Timeout = 5;
+
                 if (test.SMTPSecurity == "STARTTLS")
                     oSMTP.EnableSsl = true;
 
                 oSMTP.Send(oMail);
-                Log("========== SENT ==========");
+                Log("SENT");
             }
             catch (Exception ex)
             {
-                textLog.AppendText("=================================================================");
+                textLog.AppendText("=================================================================\r\n");
                 Log(ex.Message);
                 Log(ex.StackTrace);
             }
@@ -225,7 +222,46 @@ namespace XwSMTPTest
         private void TestWithMailKit(Test test)
         {
 
-        }
+            try
+            {
+                using (var client = new MailKit.Net.Smtp.SmtpClient())
+                {
+                    if (test.SMTPSecurity == "STARTTLS")
+                    {
+                        client.ServerCertificateValidationCallback = (s, c, h, e) => true;
+                        client.Connect(test.SMTPHost, int.Parse(test.SMTPPort), MailKit.Security.SecureSocketOptions.StartTls);
+                    }
+                    else
+                    {
+                        client.Connect(test.SMTPHost, int.Parse(test.SMTPPort), MailKit.Security.SecureSocketOptions.None);
+                    }
 
+                    if (test.SMTPUser != "")
+                    {
+                        client.Authenticate(test.SMTPUser, test.SMTPPassword);
+                    }
+
+                    
+                    var message = new MimeKit.MimeMessage();
+                    message.From.Add(new MimeKit.MailboxAddress(test.From));
+                    message.To.Add(new MimeKit.MailboxAddress(test.To));
+                    message.Subject = test.Subject;
+                    message.Body = new MimeKit.TextPart("plain")
+                    {
+                        Text = test.Body
+                    };
+
+                    client.Send(message);
+                    client.Disconnect(true);
+                }
+                Log("SENT");
+            }
+            catch (Exception ex)
+            {
+                textLog.AppendText("=================================================================\r\n");
+                Log(ex.Message);
+                Log(ex.StackTrace);
+            }
+        }
     }
 }
