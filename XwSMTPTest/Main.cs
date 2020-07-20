@@ -9,6 +9,8 @@ namespace XwSMTPTest
 {
     public partial class Main : Form
     {
+        List<Test> tests = new List<Test>();
+
         //*************************************************************************************************************
         public Main()
         {
@@ -38,25 +40,64 @@ namespace XwSMTPTest
         //*************************************************************************************************************
         private void buttonSave_Click(object sender, EventArgs e)
         {
-            
+            if (comboSavedAs.SelectedIndex == 0) //temp
+            {
+                string name = Prompt.ShowDialog("Name for settings group", "Save settings group");
+                if (name.Trim() == "")
+                {
+                    MessageBox.Show("Name can not be empty");
+                    return;
+                }
+
+                Test test = new Test();
+                test.SaveAs = name;
+                int index = comboSavedAs.Items.Add(test);
+                SaveTests(index);
+                comboSavedAs.SelectedIndex = index;
+            }
+            else
+            {
+                SaveTests(comboSavedAs.SelectedIndex);
+            }
         }
 
         //*************************************************************************************************************
         private void buttonRename_Click(object sender, EventArgs e)
         {
+            if (comboSavedAs.SelectedIndex != 0) //temp
+            {
+                Test test = (Test)comboSavedAs.SelectedItem;
+                int index = comboSavedAs.SelectedIndex;
 
+                string name = Prompt.ShowDialog("Name for settings group", "Save settings group", test.SaveAs);
+                if (name.Trim() == "")
+                {
+                    MessageBox.Show("Name can not be empty");
+                    return;
+                }
+
+                test.SaveAs = name;
+                comboSavedAs.Items[index] = test;
+                SaveTests(index);
+            }
+            
         }
 
         //*************************************************************************************************************
         private void buttonDelete_Click(object sender, EventArgs e)
         {
-
+            Test test = (Test)comboSavedAs.SelectedItem;
+            if (MessageBox.Show("Delete selected profile?", "", MessageBoxButtons.YesNo) == DialogResult.Yes)
+            {
+                comboSavedAs.Items.Remove(test);
+                comboSavedAs.SelectedIndex = 0;
+                SaveTests();
+            }
         }
         
         //*************************************************************************************************************
         private void LoadTests()
         {
-            List<Test> tests = null;
             if (File.Exists("savedtests.json"))
             {
                 string file = File.ReadAllText("savedtests.json");
@@ -81,9 +122,9 @@ namespace XwSMTPTest
         }
 
         //*************************************************************************************************************
-        private Test SaveTests()
+        private Test SaveTests(int index = 0)
         {
-            Test lastUsed = (Test)comboSavedAs.Items[0];
+            Test lastUsed = (Test)comboSavedAs.Items[index];
             lastUsed.Library = comboLibrary.SelectedItem.ToString();
             lastUsed.From = textFrom.Text.Trim();
             lastUsed.ReplyTo = textReplyTo.Text.Trim();
@@ -99,7 +140,7 @@ namespace XwSMTPTest
             lastUsed.SMTPPassword = textSMTPPassword.Text.Trim();
             lastUsed.SMTPSecurity = comboSMTPSecurity.SelectedItem.ToString();
 
-            List<Test> tests = new List<Test>();
+            tests.Clear();
             foreach (Test test in comboSavedAs.Items)
             {
                 tests.Add(test);
@@ -128,6 +169,17 @@ namespace XwSMTPTest
             textSMTPUser.Text = test.SMTPUser;
             textSMTPPassword.Text = test.SMTPPassword;
             comboSMTPSecurity.SelectedItem = test.SMTPSecurity;
+
+            if (comboSavedAs.SelectedIndex == 0)
+            {
+                buttonRename.Enabled = false;
+                buttonDelete.Enabled = false;
+            }
+            else
+            {
+                buttonRename.Enabled = true;
+                buttonDelete.Enabled = true;
+            }
         }
 
         //*************************************************************************************************************
@@ -164,51 +216,45 @@ namespace XwSMTPTest
         {
             try
             {
-                ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
-
-                System.Net.Mail.SmtpClient oSMTP = new System.Net.Mail.SmtpClient();
-                oSMTP.Host = test.SMTPHost;
-                oSMTP.Port = int.Parse(test.SMTPPort);
-
-                System.Net.Mail.MailMessage oMail = new System.Net.Mail.MailMessage(test.From, test.To, test.Subject, test.Body);
-                oMail.IsBodyHtml = false;
-                oMail.BodyEncoding = System.Text.Encoding.UTF8;
-                oMail.SubjectEncoding = System.Text.Encoding.UTF8;
-
-                if (test.ReplyTo != "")
-                    oMail.ReplyToList.Add(test.ReplyTo);
-
-                if (test.Sender != "")
-                    oMail.Sender = new System.Net.Mail.MailAddress(test.Sender);
-
-                //oMail.BodyEncoding
-                //oMail.SubjectEncoding
-                //oMail.DeliveryNotificationOptions
-                //oMail.Headers
-                //oMail.HeadersEncoding
-                //oMail.Priority
-                //oMail.IsBodyHtml
-
-                if (test.CC != "")
-                    oMail.CC.Add(test.CC);
-
-                if (test.BCC != "")
-                    oMail.Bcc.Add(test.BCC);
-
-                if (test.SMTPUser != "")
+                using (var oSMTP = new System.Net.Mail.SmtpClient())
                 {
-                    //oSMTP.UseDefaultCredentials = true;
-                    //oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword, "quintelaepenalva.pt");
-                    oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
+                    oSMTP.Host = test.SMTPHost;
+                    oSMTP.Port = int.Parse(test.SMTPPort);
+                    
+                    if (test.SMTPUser != "")
+                    {
+                        oSMTP.Credentials = new NetworkCredential(test.SMTPUser, test.SMTPPassword);
+                    }
+
+                    if (test.SMTPSecurity == "STARTTLS")
+                    {
+                        ServicePointManager.SecurityProtocol |= SecurityProtocolType.Tls | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls12;
+                        oSMTP.EnableSsl = true;
+                    }
+
+                    using (var oMail = new System.Net.Mail.MailMessage(test.From, test.To, test.Subject, test.Body))
+                    {
+                        oMail.IsBodyHtml = false;
+                        oMail.BodyEncoding = System.Text.Encoding.UTF8;
+                        oMail.SubjectEncoding = System.Text.Encoding.UTF8;
+
+                        if (test.ReplyTo != "")
+                            oMail.ReplyToList.Add(test.ReplyTo);
+
+                        if (test.Sender != "")
+                            oMail.Sender = new System.Net.Mail.MailAddress(test.Sender);
+
+                        if (test.CC != "")
+                            oMail.CC.Add(test.CC);
+
+                        if (test.BCC != "")
+                            oMail.Bcc.Add(test.BCC);
+                        
+                        oSMTP.Send(oMail);
+                    }
                 }
 
-                oSMTP.Timeout = 5;
-
-                if (test.SMTPSecurity == "STARTTLS")
-                    oSMTP.EnableSsl = true;
-
-                oSMTP.Send(oMail);
-                Log("SENT");
+                Log("********* SENT *********");
             }
             catch (Exception ex)
             {
@@ -254,7 +300,8 @@ namespace XwSMTPTest
                     client.Send(message);
                     client.Disconnect(true);
                 }
-                Log("SENT");
+
+                Log("********* SENT *********");
             }
             catch (Exception ex)
             {
