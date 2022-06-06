@@ -196,7 +196,7 @@ namespace XwSMTPTest
             textLog.Text = "";
             Test test = SaveTests();
 
-            Log("Sending...");
+            Log($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss")} : Sending... ");
             switch (test.Library)
             {
                 case ".Net":
